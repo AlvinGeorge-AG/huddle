@@ -97,7 +97,7 @@ export default function Chat() {
     <div
       style={{
         maxWidth: 480,
-        height: "100vh",
+        height: "100dvh",
         margin: "0 auto",
         display: "flex",
         flexDirection: "column",
