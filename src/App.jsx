@@ -17,24 +17,23 @@ function App() {
     const unsub = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
-      console.log(user);
     });
 
     return () => unsub();
-  }, []);
+  }, []); // Empty dependency array - only run once on mount
 
   if (loading) return <Loading />;
 
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public */}
+        {/* Public Route */}
         <Route
           path="/login"
           element={!user ? <Login /> : <Navigate to="/" replace />}
         />
 
-        {/* Protected */}
+        {/* Protected Routes */}
         <Route
           path="/"
           element={
@@ -48,10 +47,13 @@ function App() {
           path="/chat"
           element={
             <ProtectedRoute user={user}>
-              <Chat />
+              <Chat user={user} />
             </ProtectedRoute>
           }
         />
+
+        {/* Catch all - redirect to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
