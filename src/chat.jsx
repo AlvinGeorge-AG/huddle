@@ -8,20 +8,9 @@ import {
   onSnapshot
 } from "firebase/firestore";
 import EmojiPicker from "emoji-picker-react";
-import { db } from "./firebase";
+import { db, auth } from "./firebase";
 
 const ROOM_ID = "test-room";
-
-// 🔹 Username helper
-const getUsername = () => {
-  let name = localStorage.getItem("huddle_username");
-  if (!name) {
-    name = prompt("Enter your username:");
-    if (!name || !name.trim()) name = "Guest";
-    localStorage.setItem("huddle_username", name.trim());
-  }
-  return name;
-};
 
 export default function Chat() {
   const [messages, setMessages] = useState([]);
@@ -31,8 +20,16 @@ export default function Chat() {
   const [gifs, setGifs] = useState([]);
   const [gifQuery, setGifQuery] = useState("");
 
-  const usernameRef = useRef(getUsername());
   const chatBoxRef = useRef(null);
+
+  // 🔹 Derive username from Firebase Auth
+  const user = auth.currentUser;
+
+  const username =
+  user?.displayName ||
+  user?.email?.split("@")[0] ||
+  "Anonymous";
+
 
   const PICKER_HEIGHT = showEmoji || showGif ? 300 : 0;
 
@@ -62,7 +59,7 @@ export default function Chat() {
 
     await addDoc(collection(db, "messages"), {
       roomId: ROOM_ID,
-      sender: usernameRef.current,
+      sender: username,
       text,
       createdAt: Date.now()
     });
@@ -84,7 +81,7 @@ export default function Chat() {
   const sendGif = async (url) => {
     await addDoc(collection(db, "messages"), {
       roomId: ROOM_ID,
-      sender: usernameRef.current,
+      sender: username,
       gifUrl: url,
       createdAt: Date.now()
     });
@@ -107,7 +104,7 @@ export default function Chat() {
       <div style={{ padding: 12, borderBottom: "1px solid #222" }}>
         <strong>Huddle Chat</strong>
         <div style={{ fontSize: 12, color: "#aaa" }}>
-          @{usernameRef.current}
+          @{username}
         </div>
       </div>
 
@@ -123,7 +120,7 @@ export default function Chat() {
         }}
       >
         {messages.map((m, i) => {
-          const isMe = m.sender === usernameRef.current;
+          const isMe = m.sender === username;
           return (
             <div
               key={i}
@@ -163,7 +160,6 @@ export default function Chat() {
 
       {/* INPUT + PICKERS */}
       <div style={{ position: "relative" }}>
-        {/* PICKERS */}
         {(showEmoji || showGif) && (
           <div
             style={{
