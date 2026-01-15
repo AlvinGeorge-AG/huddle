@@ -9,6 +9,7 @@ import Dashboard from "./components/Dashboard";
 import ProtectedRoute from "./utils/ProtectedRoute";
 import Loading from "./components/Loading";
 import Chat from "./chat";
+import Ch2 from "./ch2";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import { Toaster } from "./components/ui/toaster";
@@ -65,7 +66,11 @@ function App() {
       </ProtectedRoute>
     }
   />
+  {/* 4.1 Activity Chat */}
+  <Route path="/chat/:roomId" element={<Ch2 user={user} />} />
 
+        <Route path="*" element={<Navigate to="/" replace />} 
+  />
   {/* 5. 404 */}
   <Route path="*" element={<NotFound />} />
 </Routes>
