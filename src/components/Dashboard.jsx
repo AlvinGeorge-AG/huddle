@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { signOut } from "firebase/auth";
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, updateDoc, doc } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import CreateActivityModal from "./CreateActivityModal";
 import ActivityCard from "./ActivityCard";
@@ -12,11 +12,20 @@ function Dashboard({ user }) {
 
     const displayName = user?.displayName?.split(" ")[0] || 'Student';
 
+    // ⭐ JOIN FUNCTION (adds user to participants)
+    const joinActivity = async (activityId) => {
+        const userId = user.uid;
+
+        await updateDoc(doc(db, "activities", activityId), {
+            [`participants.${userId}`]: true
+        });
+    };
+
     // 📡 Real-time Listener for Activities
     useEffect(() => {
         const q = query(
             collection(db, "activities"),
-            orderBy("createdAt", "desc") // Newest first
+            orderBy("createdAt", "desc")
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -40,7 +49,7 @@ function Dashboard({ user }) {
             </div>
 
             <div className="relative z-10 max-w-7xl mx-auto">
-                {/* 1. Header Section */}
+                {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
                     <div>
                         <h1 className="text-4xl font-bold text-white mb-2">
@@ -65,32 +74,35 @@ function Dashboard({ user }) {
                     </div>
                 </div>
 
-                {/* 2. Activities Grid */}
-                <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-                        <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
-                        Live on Campus
-                    </h2>
+                {/* Activities */}
+                <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                    <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
+                    Live on Campus
+                </h2>
 
-                    {loading ? (
-                        <div className="text-center text-slate-500 py-20">Loading feeds...</div>
-                    ) : activities.length === 0 ? (
-                        <div className="text-center py-20 glass-panel rounded-2xl">
-                            <div className="text-6xl mb-4">😴</div>
-                            <h3 className="text-xl text-white font-bold">It's quiet... too quiet.</h3>
-                            <p className="text-slate-400">Be the first to start an activity!</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {activities.map(activity => (
-                                <ActivityCard key={activity.id} activity={activity} />
-                            ))}
-                        </div>
-                    )}
-                </div>
+                {loading ? (
+                    <div className="text-center text-slate-500 py-20">Loading feeds...</div>
+                ) : activities.length === 0 ? (
+                    <div className="text-center py-20 glass-panel rounded-2xl">
+                        <div className="text-6xl mb-4">😴</div>
+                        <h3 className="text-xl text-white font-bold">It's quiet... too quiet.</h3>
+                        <p className="text-slate-400">Be the first to start an activity!</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {activities.map(activity => (
+                            <ActivityCard 
+                                key={activity.id} 
+                                activity={activity}
+                                user={user}
+                                onJoin={joinActivity}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
 
-            {/* 3. Modal Injection */}
+            {/* Modal */}
             <CreateActivityModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}

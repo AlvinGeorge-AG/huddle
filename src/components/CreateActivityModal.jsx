@@ -13,27 +13,32 @@ export default function CreateActivityModal({ isOpen, onClose, user }) {
 
     if (!isOpen) return null;
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setLoading(true);
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
 
-        try {
-            await addDoc(collection(db, "activities"), {
-                ...formData,
-                createdBy: user.uid,
-                creatorName: user.displayName || "Student",
-                createdAt: serverTimestamp(),
-                participants: [user.uid] // Creator automatically joins
-            });
-            onClose(); // Close modal on success
-            setFormData({ title: "", description: "", location: "", endTime: "" }); // Reset
-        } catch (error) {
-            console.error("Error creating activity:", error);
-            alert("Failed to create activity");
-        } finally {
-            setLoading(false);
-        }
-    };
+    try {
+        await addDoc(collection(db, "activities"), {
+            ...formData,
+            createdBy: user.uid,
+            creatorName: user.displayName || "Student",
+            createdAt: serverTimestamp(),
+            participants: {
+                [user.uid]: true
+            }
+        });
+
+        onClose(); 
+        setFormData({ title: "", description: "", location: "", endTime: "" });
+
+    } catch (error) {
+        console.error("Error creating activity:", error);
+        alert("Failed to create activity");
+    } finally {
+        setLoading(false);
+    }
+};
+
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

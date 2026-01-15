@@ -1,33 +1,24 @@
-
 import { useNavigate } from "react-router-dom";
-import { doc, updateDoc, collection, getDocs, deleteDoc } from "firebase/firestore";
-import { db } from "../firebase";
 
-
-export default function ActivityCard({ activity }) {
+export default function ActivityCard({ activity, user, onJoin }) {
     const navigate = useNavigate();
 
-    
     const formatDate = (dateString) => {
         if (!dateString) return "No time set";
-        const date = new Date(dateString);
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const date =
+            dateString?.toDate ? dateString.toDate() : new Date(dateString);
+
+        return date.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+        });
     };
-    const deleteActivityChat = async (activityId) => {
-  try {
-    const messagesRef = collection(db, "activities", activityId, "messages");
-    const snapshot = await getDocs(messagesRef);
 
-    for (const msg of snapshot.docs) {
-      await deleteDoc(doc(db, "activities", activityId, "messages", msg.id));
-    }
+    // ✅ Check if current user has joined
+    const hasJoined = activity.participants?.[user.uid] === true;
 
-    console.log("🗑️ Chat deleted for activity:", activityId);
-  } catch (error) {
-    console.error("Error deleting chat:", error);
-  }
-};
-
+    // ✅ Participant count
+    const participantCount = Object.keys(activity.participants || {}).length;
 
     return (
         <div className="glass-card rounded-2xl p-6 flex flex-col justify-between h-full group hover:border-blue-500/30 transition-all">
@@ -49,62 +40,98 @@ export default function ActivityCard({ activity }) {
                     {activity.description}
                 </p>
 
-                <div className="flex items-center gap-2 text-sm text-slate-500 mb-6">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
+                    <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                        />
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                    </svg>
                     <span>{activity.location}</span>
+                </div>
+
+                {/* 👥 PARTICIPANTS */}
+                <div className="text-xs text-slate-400 mb-2">
+                    👥 {participantCount} joined
                 </div>
             </div>
 
             <div className="flex items-center justify-between border-t border-white/5 pt-4 mt-auto">
                 <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-[10px] font-bold text-white">
-                        {activity.creatorName?.charAt(0)}
-                    </div>
-                    <span className="text-xs text-slate-400">by {activity.creatorName}</span>
-                </div>
+  <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-500 to-pink-500
+                  flex items-center justify-center text-[10px] font-bold text-white">
+    {activity.creatorName?.charAt(0)}
+  </div>
 
-                <button
-  onClick={async () => {
-    let endTime;
+  <div className="flex items-center gap-1">
+    <span className="text-xs text-slate-400">
+      {activity.creatorName}
+    </span>
 
-    if (activity.endTime?.toDate) {
-      endTime = activity.endTime.toDate();
-    } else {
-      endTime = new Date(activity.endTime);
-    }
+    <span className="text-[10px] px-2 py-0.5 rounded-full
+                     bg-yellow-500/20 text-yellow-300 border border-yellow-400/20">
+      Creator
+    </span>
+  </div>
+</div>
 
-    if (new Date() > endTime) {
-      alert("This activity chat is closed.");
 
-      try {
-
-        await updateDoc(doc(db, "activities", activity.id), {
-          isClosed: true,
-        });
-
-        await deleteActivityChat(activity.id);
-
-        console.log("✅ Activity closed and chat removed");
-      } catch (err) {
-        console.error("Error closing activity:", err);
-      }
-
-      navigate("/");
-      return;
-    }
-
-    navigate(`/chat/${activity.id}`);
-  }}
-  className="bg-slate-700 hover:bg-slate-600 text-white text-sm py-2 px-4 rounded-lg transition-colors font-medium flex items-center gap-2"
->
-  Join
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-  </svg>
-</button>
-
+                {/* ✅ JOIN / CHAT BUTTON */}
+                {hasJoined ? (
+                    <button
+                        onClick={() => navigate(`/chat/${activity.id}`)}
+                        className="bg-blue-600 hover:bg-blue-500 text-white text-sm py-2 px-4 rounded-lg transition-colors font-medium flex items-center gap-2"
+                    >
+                        Open Chat
+                        <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M17 8l4 4m0 0l-4 4m4-4H3"
+                            />
+                        </svg>
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => onJoin(activity.id)}
+                        className="bg-slate-700 hover:bg-slate-600 text-white text-sm py-2 px-4 rounded-lg transition-colors font-medium flex items-center gap-2"
+                    >
+                        Join
+                        <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M17 8l4 4m0 0l-4 4m4-4H3"
+                            />
+                        </svg>
+                    </button>
+                )}
             </div>
         </div>
     );
 }
-
