@@ -1,13 +1,6 @@
-Here is a professional, complete **README.md** file for your project. You can copy-paste this directly into your project root.
-
-***
-
 # 💬 Huddle - MEC Student Community
 
 **Huddle** is a real-time collaboration and social platform designed exclusively for **MEC students**. It connects the campus through a central hub where students can chat, create activities, and stay updated on what's happening live on campus.
-
-![Huddle Banner](https://via.placeholder.com/1200x600/0f172a/38bdf8?text=Huddle+Dashboard+Preview)
-*(Replace this link with an actual screenshot of your Dashboard)*
 
 ## ✨ Key Features
 
