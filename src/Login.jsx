@@ -21,7 +21,7 @@ function Login() {
             if (!user.email.endsWith("@mec.ac.in")) {
                 setError("🚫 Access Restricted: @mec.ac.in email required");
                 await auth.signOut();
-                alert("🚫 Access Restricted: @mec.ac.in email required") ;
+                alert("🚫 Access Restricted: @mec.ac.in email required");
                 setLoading(false);
                 return;
             }
