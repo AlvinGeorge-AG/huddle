@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
 import { signOut } from "firebase/auth";
-import { collection, query, orderBy, onSnapshot, updateDoc, doc } from "firebase/firestore";
+import {
+    collection,
+    query,
+    orderBy,
+    onSnapshot,
+    updateDoc,
+    doc,
+    deleteDoc
+} from "firebase/firestore";
 import { auth, db } from "../firebase";
 import CreateActivityModal from "./CreateActivityModal";
 import ActivityCard from "./ActivityCard";
@@ -10,30 +18,50 @@ function Dashboard({ user }) {
     const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const displayName = user?.displayName?.split(" ")[0] || 'Student';
+    const displayName = user?.displayName?.split(" ")[0] || "Student";
 
     // ⭐ JOIN FUNCTION (adds user to participants)
     const joinActivity = async (activityId) => {
         const userId = user.uid;
 
         await updateDoc(doc(db, "activities", activityId), {
-            [`participants.${userId}`]: true
+            [`participants.${userId}`]: true,
         });
     };
 
-    // 📡 Real-time Listener for Activities
+    // 📡 Real-time Listener + Auto-delete expired activities
     useEffect(() => {
-        const q = query(
-            collection(db, "activities"),
-            orderBy("createdAt", "desc")
-        );
+        const q = query(collection(db, "activities"), orderBy("createdAt", "desc"));
 
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const activitiesData = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
-            setActivities(activitiesData);
+        const unsubscribe = onSnapshot(q, async (snapshot) => {
+            const now = new Date();
+            const validActivities = [];
+
+            for (const docSnap of snapshot.docs) {
+                const data = docSnap.data();
+                let endTime;
+
+                // 🎯 Convert Firestore Timestamp or string into JS Date
+                if (data.endTime?.toDate) {
+                    endTime = data.endTime.toDate();
+                } else {
+                    endTime = new Date(data.endTime);
+                }
+
+                // ⛔ AUTO DELETE EXPIRED ACTIVITY
+                if (endTime < now) {
+                    await deleteDoc(doc(db, "activities", docSnap.id));
+                    continue;
+                }
+
+                // ✅ Add to the list of active activities
+                validActivities.push({
+                    id: docSnap.id,
+                    ...data,
+                });
+            }
+
+            setActivities(validActivities);
             setLoading(false);
         });
 
@@ -53,9 +81,12 @@ function Dashboard({ user }) {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
                     <div>
                         <h1 className="text-4xl font-bold text-white mb-2">
-                            Welcome, <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">{displayName}</span>
+                            Welcome,{" "}
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">
+                                {displayName}
+                            </span>
                         </h1>
-                        <p className="text-slate-400">See what's happening on campus right now.</p>
+                        <p className="text-slate-400">See what’s happening on campus right now.</p>
                     </div>
 
                     <div className="flex gap-3 w-full md:w-auto">
@@ -63,7 +94,7 @@ function Dashboard({ user }) {
                             onClick={() => setIsModalOpen(true)}
                             className="flex-1 md:flex-none btn-primary flex justify-center items-center gap-2"
                         >
-                            <span>+ Create Activity</span>
+                            + Create Activity
                         </button>
                         <button
                             onClick={() => signOut(auth)}
@@ -90,9 +121,9 @@ function Dashboard({ user }) {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {activities.map(activity => (
-                            <ActivityCard 
-                                key={activity.id} 
+                        {activities.map((activity) => (
+                            <ActivityCard
+                                key={activity.id}
                                 activity={activity}
                                 user={user}
                                 onJoin={joinActivity}
