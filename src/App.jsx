@@ -32,50 +32,50 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-    
-        <Routes>
-  {/* 1. PUBLIC LANDING PAGE */}
-  <Route
-  path="/"
-  element={user ? <Navigate to="/dashboard" replace /> : <Index />}
-/>
+
+      <Routes>
+        {/* 1. PUBLIC LANDING PAGE */}
+        <Route
+          path="/"
+          element={user ? <Navigate to="/dashboard" replace /> : <Index />}
+        />
 
 
-  {/* 2. LOGIN PAGE */}
-  <Route
-    path="/login"
-    element={!user ? <Login /> : <Navigate to="/dashboard" replace />}
-  />
+        {/* 2. LOGIN PAGE */}
+        <Route
+          path="/login"
+          element={!user ? <Login /> : <Navigate to="/dashboard" replace />}
+        />
 
-  {/* 3. PROTECTED DASHBOARD */}
-  <Route
-    path="/dashboard"
-    element={
-      <ProtectedRoute user={user}>
-        <Dashboard user={user} />
-      </ProtectedRoute>
-    }
-  />
+        {/* 3. PROTECTED DASHBOARD */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute user={user}>
+              <Dashboard user={user} />
+            </ProtectedRoute>
+          }
+        />
 
-  {/* 4. PROTECTED CHAT */}
-  <Route
-    path="/chat"
-    element={
-      <ProtectedRoute user={user}>
-        <Chat user={user} />
-      </ProtectedRoute>
-    }
-  />
-  {/* 4.1 Activity Chat */}
-  <Route path="/chat/:roomId" element={<Ch2 user={user} />} />
+        {/* 4. PROTECTED CHAT */}
+        <Route
+          path="/chat"
+          element={
+            <ProtectedRoute user={user}>
+              <Chat user={user} />
+            </ProtectedRoute>
+          }
+        />
+        {/* 4.1 Activity Chat */}
+        <Route path="/chat/:roomId" element={<Ch2 user={user} />} />
 
-        <Route path="*" element={<Navigate to="/" replace />} 
-  />
-  {/* 5. 404 */}
-  <Route path="*" element={<NotFound />} />
-</Routes>
+        <Route path="*" element={<Navigate to="/" replace />}
+        />
+        {/* 5. 404 */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
 
-        <Toaster />
+      <Toaster />
     </QueryClientProvider>
   );
 }

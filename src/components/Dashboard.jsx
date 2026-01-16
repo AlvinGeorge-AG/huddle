@@ -13,8 +13,11 @@ import {
 import { auth, db } from "../firebase";
 import CreateActivityModal from "./CreateActivityModal";
 import ActivityCard from "./ActivityCard";
+import { useNavigate, useParams } from "react-router-dom";
+
 
 function Dashboard({ user }) {
+    const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -29,6 +32,16 @@ function Dashboard({ user }) {
             await updateDoc(ref, { [`participants.${userId}`]: true });
         } else if (action === "leave") {
             await updateDoc(ref, { [`participants.${userId}`]: deleteField() });
+        }
+    };
+
+    const handleLogout = async () => {
+        try {
+            console.log("hi");
+            await signOut(auth); // Wait for Firebase to finish logging out
+            navigate("/");       // THEN navigate to the home page
+        } catch (error) {
+            console.error("Error signing out:", error);
         }
     };
 
@@ -96,7 +109,7 @@ function Dashboard({ user }) {
                         </button>
 
                         <button
-                            onClick={() => signOut(auth)}
+                            onClick={() => { handleLogout() }}
                             className="px-5 py-3 rounded-xl border border-red-500/30 
                                 text-red-400 hover:bg-red-500/10 transition font-medium"
                         >
