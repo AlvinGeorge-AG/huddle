@@ -63,16 +63,14 @@ export default function Chat({ user }) {
 
     /* 🔹 Ensure Keyboard is HIDDEN on Load */
     useEffect(() => {
-        // This forces the input to lose focus when you first enter the page
         if (inputRef.current) {
             inputRef.current.blur();
         }
-    }, []); // Empty dependency array = runs once on mount
+    }, []);
 
     const sendMessage = async () => {
         if (!text.trim() || !roomId) return;
 
-        // 1. Send Message
         await addDoc(collection(db, "activities", roomId, "messages"), {
             sender: username,
             email: userEmail,
@@ -81,13 +79,9 @@ export default function Chat({ user }) {
             type: "text"
         });
 
-        // 2. Clear Text
         setText("");
-
-        // 3. Keep Focus (Standard behavior is to keep keyboard open after sending)
-        // If you prefer keyboard to close after sending, remove the line below:
+        // Keep focus on input for fast typing
         inputRef.current?.focus();
-
         setShowPicker(false);
     };
 
@@ -120,19 +114,19 @@ export default function Chat({ user }) {
         }
     };
 
-    // Handle opening the Drawer (Closes keyboard)
+    // Toggle Drawer (Closes keyboard)
     const togglePicker = (tab) => {
         if (showPicker && activeTab === tab) {
             setShowPicker(false);
-            inputRef.current?.focus(); // Bring keyboard back
+            inputRef.current?.focus();
         } else {
             setShowPicker(true);
             setActiveTab(tab);
-            inputRef.current?.blur(); // Force close mobile keyboard
+            inputRef.current?.blur();
         }
     };
 
-    // Handle typing (Closes Drawer)
+    // Typing closes drawer
     const handleInputFocus = () => {
         setShowPicker(false);
     };
@@ -143,10 +137,7 @@ export default function Chat({ user }) {
             {/* HEADER */}
             <header className="h-16 shrink-0 bg-card/80 backdrop-blur-md border-b border-border flex items-center px-4 z-10">
                 <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => navigate("/dashboard")}
-                        className="p-2 rounded-full hover:bg-muted transition"
-                    >
+                    <button onClick={() => navigate("/dashboard")} className="p-2 rounded-full hover:bg-muted transition">
                         ←
                     </button>
                     <div>
@@ -198,7 +189,7 @@ export default function Chat({ user }) {
             </div>
 
             {/* INPUT BAR */}
-            <div className="shrink-0 p-3 bg-card border-t border-border z-20">
+            <div className="shrink-0 p-3 bg-card border-t border-border z-20 relative">
                 <div className="flex items-end gap-2 bg-muted p-2 rounded-xl border border-border focus-within:border-primary transition-colors">
 
                     <button
@@ -218,11 +209,6 @@ export default function Chat({ user }) {
                         GIF
                     </button>
 
-                    {/* 
-                       IMPORTANT: 
-                       1. autoFocus is removed.
-                       2. onFocus handles closing the drawer.
-                    */}
                     <textarea
                         ref={inputRef}
                         value={text}
@@ -235,9 +221,9 @@ export default function Chat({ user }) {
                             }
                         }}
                         placeholder="Type a message..."
-                        className="flex-1 bg-transparent resize-none outline-none py-2 max-h-32 min-h-[40px] text-sm sm:text-base"
+                        className="flex-1 bg-transparent text-foreground resize-none outline-none py-2 max-h-32 min-h-[40px] text-sm sm:text-base placeholder:text-muted-foreground"
                         rows={1}
-                    // ⛔️ DO NOT ADD autoFocus HERE ⛔️
+                        autoComplete="off"
                     />
 
                     <button
@@ -257,60 +243,69 @@ export default function Chat({ user }) {
                 className={`shrink-0 bg-card border-t border-border overflow-hidden transition-all duration-300 ease-in-out ${showPicker ? "h-[320px]" : "h-0"
                     }`}
             >
-                {/* EMOJI */}
-                <div className={`h-full w-full ${activeTab === 'emoji' ? 'block' : 'hidden'}`}>
-                    <EmojiPicker
-                        theme="dark"
-                        onEmojiClick={(e) => setText(prev => prev + e.emoji)}
-                        width="100%"
-                        height="100%"
-                        previewConfig={{ showPreview: false }}
-                    />
-                </div>
+                {/* 
+                   🔹 KEY FIX: We wrap the contents in a div that becomes HIDDEN
+                   when the drawer is closed. This prevents the browser from
+                   focusing on inputs inside the drawer when it's supposed to be closed.
+                */}
+                <div className="h-full w-full" style={{ visibility: showPicker ? 'visible' : 'hidden' }}>
 
-                {/* GIF */}
-                <div className={`h-full w-full flex flex-col p-3 ${activeTab === 'gif' ? 'block' : 'hidden'}`}>
-                    <div className="relative mb-3 shrink-0">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">🔍</span>
-                        <input
-                            type="text"
-                            value={gifSearch}
-                            onChange={(e) => {
-                                setGifSearch(e.target.value);
-                                searchGifs(e.target.value);
-                            }}
-                            placeholder="Search Giphy..."
-                            className="w-full bg-muted text-foreground border border-border rounded-full pl-9 pr-4 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                            autoComplete="off"
+                    {/* EMOJI */}
+                    <div className={`h-full w-full ${activeTab === 'emoji' ? 'block' : 'hidden'}`}>
+                        <EmojiPicker
+                            theme="dark"
+                            onEmojiClick={(e) => setText(prev => prev + e.emoji)}
+                            width="100%"
+                            height="100%"
+                            previewConfig={{ showPreview: false }}
+                            autoFocusSearch={false} /* 🔹 FIX: Prevents focus stealing */
                         />
                     </div>
 
-                    <div className="flex-1 overflow-y-auto min-h-0">
-                        {gifs.length > 0 ? (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pb-2">
-                                {gifs.map(g => (
-                                    <div
-                                        key={g.id}
-                                        onClick={() => sendGif(g.images.fixed_height.url)}
-                                        className="relative aspect-video group cursor-pointer overflow-hidden rounded-lg bg-muted"
-                                    >
-                                        <img
-                                            src={g.images.fixed_height_small.url}
-                                            alt={g.title}
-                                            className="w-full h-full object-cover transition-transform group-hover:scale-110"
-                                            loading="lazy"
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                                {activeTab === 'gif' ? "Searching..." : "No GIFs found"}
-                            </div>
-                        )}
-                    </div>
-                    <div className="shrink-0 text-[10px] text-center text-muted-foreground mt-1">
-                        Powered by GIPHY
+                    {/* GIF */}
+                    <div className={`h-full w-full flex flex-col p-3 ${activeTab === 'gif' ? 'block' : 'hidden'}`}>
+                        <div className="relative mb-3 shrink-0">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">🔍</span>
+                            <input
+                                type="text"
+                                value={gifSearch}
+                                onChange={(e) => {
+                                    setGifSearch(e.target.value);
+                                    searchGifs(e.target.value);
+                                }}
+                                placeholder="Search Giphy..."
+                                className="w-full bg-muted text-foreground border border-border rounded-full pl-9 pr-4 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                                autoComplete="off"
+                            />
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto min-h-0">
+                            {gifs.length > 0 ? (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pb-2">
+                                    {gifs.map(g => (
+                                        <div
+                                            key={g.id}
+                                            onClick={() => sendGif(g.images.fixed_height.url)}
+                                            className="relative aspect-video group cursor-pointer overflow-hidden rounded-lg bg-muted"
+                                        >
+                                            <img
+                                                src={g.images.fixed_height_small.url}
+                                                alt={g.title}
+                                                className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                                                loading="lazy"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                                    {activeTab === 'gif' ? "Searching..." : "No GIFs found"}
+                                </div>
+                            )}
+                        </div>
+                        <div className="shrink-0 text-[10px] text-center text-muted-foreground mt-1">
+                            Powered by GIPHY
+                        </div>
                     </div>
                 </div>
             </div>
