@@ -7,7 +7,8 @@ import {
     onSnapshot,
     updateDoc,
     doc,
-    deleteDoc
+    deleteDoc,
+    deleteField
 } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import CreateActivityModal from "./CreateActivityModal";
@@ -20,16 +21,25 @@ function Dashboard({ user }) {
 
     const displayName = user?.displayName?.split(" ")[0] || "Student";
 
-    // ⭐ JOIN FUNCTION (adds user to participants)
-    const joinActivity = async (activityId) => {
+    // ⭐ JOIN / LEAVE HANDLER
+    const onJoinOrLeave = async (activityId, action) => {
         const userId = user.uid;
+        const ref = doc(db, "activities", activityId);
 
-        await updateDoc(doc(db, "activities", activityId), {
-            [`participants.${userId}`]: true,
-        });
+        if (action === "join") {
+            await updateDoc(ref, {
+                [`participants.${userId}`]: true,
+            });
+        } 
+        
+        if (action === "leave") {
+            await updateDoc(ref, {
+                [`participants.${userId}`]: deleteField(),
+            });
+        }
     };
 
-    // 📡 Real-time Listener + Auto-delete expired activities
+    // 📡 REALTIME LISTENER + AUTO-DELETE EXPIRED
     useEffect(() => {
         const q = query(collection(db, "activities"), orderBy("createdAt", "desc"));
 
@@ -41,20 +51,19 @@ function Dashboard({ user }) {
                 const data = docSnap.data();
                 let endTime;
 
-                // 🎯 Convert Firestore Timestamp or string into JS Date
+                // Convert Firestore Timestamp or string into JS Date
                 if (data.endTime?.toDate) {
                     endTime = data.endTime.toDate();
                 } else {
                     endTime = new Date(data.endTime);
                 }
 
-                // ⛔ AUTO DELETE EXPIRED ACTIVITY
+                // ⛔ DELETE EXPIRED ACTIVITY
                 if (endTime < now) {
                     await deleteDoc(doc(db, "activities", docSnap.id));
                     continue;
                 }
 
-                // ✅ Add to the list of active activities
                 validActivities.push({
                     id: docSnap.id,
                     ...data,
@@ -96,6 +105,7 @@ function Dashboard({ user }) {
                         >
                             + Create Activity
                         </button>
+
                         <button
                             onClick={() => signOut(auth)}
                             className="px-5 py-3 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 transition font-medium"
@@ -126,7 +136,7 @@ function Dashboard({ user }) {
                                 key={activity.id}
                                 activity={activity}
                                 user={user}
-                                onJoin={joinActivity}
+                                onJoinOrLeave={onJoinOrLeave}
                             />
                         ))}
                     </div>

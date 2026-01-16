@@ -1,137 +1,93 @@
 import { useNavigate } from "react-router-dom";
 
-export default function ActivityCard({ activity, user, onJoin }) {
-    const navigate = useNavigate();
+export default function ActivityCard({ activity, user, onJoinOrLeave }) {
+  const navigate = useNavigate();
 
-    const formatDate = (dateString) => {
-        if (!dateString) return "No time set";
-        const date =
-            dateString?.toDate ? dateString.toDate() : new Date(dateString);
+  const participants = activity.participants || {};
+  const hasJoined = !!participants[user.uid];
+  const participantCount = Object.keys(participants).length;
+  const max = activity.maxParticipants || Infinity;
+  const isFull = participantCount >= max;
 
-        return date.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-        });
-    };
+  const formatTime = (value) => {
+    if (!value) return "--";
+    const d = value.toDate ? value.toDate() : new Date(value);
+    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
 
-    // ✅ Check if current user has joined
-    const hasJoined = activity.participants?.[user.uid] === true;
+  return (
+    <div className="glass-card rounded-2xl p-6 flex flex-col gap-4 hover:border-blue-500/30 transition">
+      
+      {/* TOP */}
+      <div className="flex justify-between items-start">
+        <span className={`text-xs px-2 py-1 rounded-md font-bold 
+          ${isFull ? "bg-red-600/20 text-red-300" : "bg-blue-600/20 text-blue-300"}`}>
+          {isFull ? "FULL" : "OPEN"}
+        </span>
 
-    // ✅ Participant count
-    const participantCount = Object.keys(activity.participants || {}).length;
+        <span className="text-slate-500 text-xs">
+          Ends at {formatTime(activity.endTime)}
+        </span>
+      </div>
 
-    return (
-        <div className="glass-card rounded-2xl p-6 flex flex-col justify-between h-full group hover:border-blue-500/30 transition-all">
-            <div>
-                <div className="flex justify-between items-start mb-3">
-                    <span className="bg-blue-600/20 text-blue-300 text-xs font-bold px-2 py-1 rounded-md border border-blue-500/20">
-                        OPEN
-                    </span>
-                    <span className="text-slate-500 text-xs">
-                        Ends at {formatDate(activity.endTime)}
-                    </span>
-                </div>
+      {/* BODY */}
+      <div>
+        <h3 className="text-xl font-bold text-white">{activity.title}</h3>
+        <p className="text-slate-400 text-sm mt-1 line-clamp-2">
+          {activity.description}
+        </p>
+      </div>
 
-                <h3 className="text-xl font-bold text-white mb-2 group-hover:text-blue-400 transition-colors">
-                    {activity.title}
-                </h3>
+      <div className="text-xs text-slate-400">
+        👥 {participantCount} / {max} joined
+      </div>
 
-                <p className="text-slate-400 text-sm mb-4 line-clamp-2">
-                    {activity.description}
-                </p>
+      {/* FOOTER */}
+      <div className="flex justify-between items-center border-t border-white/5 pt-4">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-500 to-pink-500
+                          flex items-center justify-center text-[10px] font-bold text-white">
+            {activity.creatorName?.charAt(0)}
+          </div>
 
-                <div className="flex items-center gap-2 text-sm text-slate-500 mb-4">
-                    <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                        />
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                    </svg>
-                    <span>{activity.location}</span>
-                </div>
+          <span className="text-xs text-slate-400">
+            {activity.creatorName}
+          </span>
 
-                {/* 👥 PARTICIPANTS */}
-                <div className="text-xs text-slate-400 mb-2">
-                    👥 {participantCount} joined
-                </div>
-            </div>
-
-            <div className="flex items-center justify-between border-t border-white/5 pt-4 mt-auto">
-                <div className="flex items-center gap-2">
-  <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-500 to-pink-500
-                  flex items-center justify-center text-[10px] font-bold text-white">
-    {activity.creatorName?.charAt(0)}
-  </div>
-
-  <div className="flex items-center gap-1">
-    <span className="text-xs text-slate-400">
-      {activity.creatorName}
-    </span>
-
-    <span className="text-[10px] px-2 py-0.5 rounded-full
-                     bg-yellow-500/20 text-yellow-300 border border-yellow-400/20">
-      Creator
-    </span>
-  </div>
-</div>
-
-
-                {/* ✅ JOIN / CHAT BUTTON */}
-                {hasJoined ? (
-                    <button
-                        onClick={() => navigate(`/chat/${activity.id}`)}
-                        className="bg-blue-600 hover:bg-blue-500 text-white text-sm py-2 px-4 rounded-lg transition-colors font-medium flex items-center gap-2"
-                    >
-                        Open Chat
-                        <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M17 8l4 4m0 0l-4 4m4-4H3"
-                            />
-                        </svg>
-                    </button>
-                ) : (
-                    <button
-                        onClick={() => onJoin(activity.id)}
-                        className="bg-slate-700 hover:bg-slate-600 text-white text-sm py-2 px-4 rounded-lg transition-colors font-medium flex items-center gap-2"
-                    >
-                        Join
-                        <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M17 8l4 4m0 0l-4 4m4-4H3"
-                            />
-                        </svg>
-                    </button>
-                )}
-            </div>
+          <span className="text-[10px] px-2 py-0.5 rounded-full
+                           bg-yellow-500/20 text-yellow-300 border border-yellow-400/20">
+            Creator
+          </span>
         </div>
-    );
+
+        {/* ACTIONS */}
+        {hasJoined ? (
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigate(`/chat/${activity.id}`)}
+              className="bg-blue-600 hover:bg-blue-500 text-white text-sm px-3 py-2 rounded-lg"
+            >
+              Chat
+            </button>
+
+            <button
+              onClick={() => onJoinOrLeave(activity.id, "leave")}
+              className="bg-red-600 hover:bg-red-500 text-white text-sm px-3 py-2 rounded-lg"
+            >
+              Leave
+            </button>
+          </div>
+        ) : (
+          <button
+            disabled={isFull}
+            onClick={() => onJoinOrLeave(activity.id, "join")}
+            className={`text-white text-sm px-4 py-2 rounded-lg
+              ${isFull ? "bg-gray-600 cursor-not-allowed" : "bg-slate-700 hover:bg-slate-600"}`}
+          >
+            {isFull ? "Full" : "Join"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }
