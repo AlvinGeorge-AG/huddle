@@ -19,8 +19,8 @@ export default function Chat({ user }) {
 
     const [messages, setMessages] = useState([]);
     const [text, setText] = useState("");
-    const [showPicker, setShowPicker] = useState(false); // Controls Drawer visibility
-    const [activeTab, setActiveTab] = useState("emoji"); // 'emoji' or 'gif'
+    const [showPicker, setShowPicker] = useState(false);
+    const [activeTab, setActiveTab] = useState("emoji");
     const [gifs, setGifs] = useState([]);
     const [activityTitle, setActivityTitle] = useState("Huddle Chat");
     const [gifSearch, setGifSearch] = useState("");
@@ -29,7 +29,7 @@ export default function Chat({ user }) {
     const userEmail = user?.email || "";
 
     const chatBoxRef = useRef(null);
-    const inputRef = useRef(null); // Ref for text input to manage focus
+    const inputRef = useRef(null);
 
     /* 🔹 Fetch activity title */
     useEffect(() => {
@@ -61,15 +61,18 @@ export default function Chat({ user }) {
         }
     }, [messages, showPicker, activeTab, gifs]);
 
-    /* 🔹 Initial GIF Load */
+    /* 🔹 Ensure Keyboard is HIDDEN on Load */
     useEffect(() => {
-        if (activeTab === 'gif' && gifs.length === 0) {
-            searchGifs("trending");
+        // This forces the input to lose focus when you first enter the page
+        if (inputRef.current) {
+            inputRef.current.blur();
         }
-    }, [activeTab]);
+    }, []); // Empty dependency array = runs once on mount
 
     const sendMessage = async () => {
         if (!text.trim() || !roomId) return;
+
+        // 1. Send Message
         await addDoc(collection(db, "activities", roomId, "messages"), {
             sender: username,
             email: userEmail,
@@ -77,10 +80,14 @@ export default function Chat({ user }) {
             createdAt: serverTimestamp(),
             type: "text"
         });
+
+        // 2. Clear Text
         setText("");
-        // Keep picker open or close it? WhatsApp keeps it open if typing, 
-        // but usually closes on send. Let's keep focus on input.
+
+        // 3. Keep Focus (Standard behavior is to keep keyboard open after sending)
+        // If you prefer keyboard to close after sending, remove the line below:
         inputRef.current?.focus();
+
         setShowPicker(false);
     };
 
@@ -113,21 +120,19 @@ export default function Chat({ user }) {
         }
     };
 
-    // 🔹 Logic to open Drawer and Close Keyboard
+    // Handle opening the Drawer (Closes keyboard)
     const togglePicker = (tab) => {
         if (showPicker && activeTab === tab) {
-            // Close if clicking same tab
             setShowPicker(false);
             inputRef.current?.focus(); // Bring keyboard back
         } else {
-            // Open Picker
             setShowPicker(true);
             setActiveTab(tab);
-            inputRef.current?.blur(); // 🔑 Close Mobile Keyboard
+            inputRef.current?.blur(); // Force close mobile keyboard
         }
     };
 
-    // 🔹 Logic to Open Keyboard and Close Drawer
+    // Handle typing (Closes Drawer)
     const handleInputFocus = () => {
         setShowPicker(false);
     };
@@ -156,7 +161,7 @@ export default function Chat({ user }) {
                 </div>
             </header>
 
-            {/* CHAT MESSAGES AREA */}
+            {/* CHAT MESSAGES */}
             <div
                 ref={chatBoxRef}
                 className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-background to-card"
@@ -180,7 +185,9 @@ export default function Chat({ user }) {
                                             alt="GIF"
                                             className="rounded-lg mt-2 w-full h-auto object-cover bg-black/20"
                                             loading="lazy"
-                                            onLoad={() => chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight}
+                                            onLoad={() => {
+                                                if (chatBoxRef.current) chatBoxRef.current.scrollTop = chatBoxRef.current.scrollHeight;
+                                            }}
                                         />
                                     )}
                                 </div>
@@ -190,11 +197,10 @@ export default function Chat({ user }) {
                 })}
             </div>
 
-            {/* INPUT BAR AREA */}
+            {/* INPUT BAR */}
             <div className="shrink-0 p-3 bg-card border-t border-border z-20">
                 <div className="flex items-end gap-2 bg-muted p-2 rounded-xl border border-border focus-within:border-primary transition-colors">
 
-                    {/* Emoji Toggle */}
                     <button
                         onClick={() => togglePicker("emoji")}
                         className={`p-2 transition-colors ${showPicker && activeTab === 'emoji' ? 'text-primary' : 'text-muted-foreground hover:text-primary'}`}
@@ -202,7 +208,6 @@ export default function Chat({ user }) {
                         🙂
                     </button>
 
-                    {/* GIF Toggle */}
                     <button
                         onClick={() => togglePicker("gif")}
                         className={`p-2 text-xs font-bold border border-transparent rounded-lg h-10 w-10 flex items-center justify-center transition-all ${showPicker && activeTab === 'gif'
@@ -213,11 +218,15 @@ export default function Chat({ user }) {
                         GIF
                     </button>
 
-                    {/* Text Input */}
+                    {/* 
+                       IMPORTANT: 
+                       1. autoFocus is removed.
+                       2. onFocus handles closing the drawer.
+                    */}
                     <textarea
                         ref={inputRef}
                         value={text}
-                        onFocus={handleInputFocus} // Close drawer when typing
+                        onFocus={handleInputFocus}
                         onChange={(e) => setText(e.target.value)}
                         onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.shiftKey) {
@@ -228,9 +237,9 @@ export default function Chat({ user }) {
                         placeholder="Type a message..."
                         className="flex-1 bg-transparent resize-none outline-none py-2 max-h-32 min-h-[40px] text-sm sm:text-base"
                         rows={1}
+                    // ⛔️ DO NOT ADD autoFocus HERE ⛔️
                     />
 
-                    {/* Send Button */}
                     <button
                         onClick={sendMessage}
                         disabled={!text.trim()}
@@ -243,16 +252,12 @@ export default function Chat({ user }) {
                 </div>
             </div>
 
-            {/* 
-               DRAWER AREA (Replaces Keyboard) 
-               - Uses h-[40vh] to mimic keyboard height
-               - conditionally rendered via height transition
-            */}
+            {/* DRAWER (Emoji/GIF) */}
             <div
                 className={`shrink-0 bg-card border-t border-border overflow-hidden transition-all duration-300 ease-in-out ${showPicker ? "h-[320px]" : "h-0"
                     }`}
             >
-                {/* EMOJI PICKER CONTENT */}
+                {/* EMOJI */}
                 <div className={`h-full w-full ${activeTab === 'emoji' ? 'block' : 'hidden'}`}>
                     <EmojiPicker
                         theme="dark"
@@ -263,9 +268,8 @@ export default function Chat({ user }) {
                     />
                 </div>
 
-                {/* GIF PICKER CONTENT */}
+                {/* GIF */}
                 <div className={`h-full w-full flex flex-col p-3 ${activeTab === 'gif' ? 'block' : 'hidden'}`}>
-                    {/* Search Bar for GIF */}
                     <div className="relative mb-3 shrink-0">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">🔍</span>
                         <input
@@ -281,7 +285,6 @@ export default function Chat({ user }) {
                         />
                     </div>
 
-                    {/* GIF Grid */}
                     <div className="flex-1 overflow-y-auto min-h-0">
                         {gifs.length > 0 ? (
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pb-2">
@@ -302,11 +305,10 @@ export default function Chat({ user }) {
                             </div>
                         ) : (
                             <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-                                No GIFs found
+                                {activeTab === 'gif' ? "Searching..." : "No GIFs found"}
                             </div>
                         )}
                     </div>
-                    {/* Giphy Attribution */}
                     <div className="shrink-0 text-[10px] text-center text-muted-foreground mt-1">
                         Powered by GIPHY
                     </div>
