@@ -10,7 +10,7 @@
 *   **🚀 Activity Hub:**
     *   Create campus activities (Study groups, Hackathons, Sports).
     *   View live feed of ongoing and upcoming events.
-    *   See details like Location, End Time, and Host.
+    *   See details like Location, End Time, and Host..
 *   **📱 Fully Responsive:** Works seamlessly on Desktop and Mobile.
 
 ## 🛠️ Tech Stack
